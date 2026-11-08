@@ -1,0 +1,7 @@
+target/
+.m2/
+.env
+.maven-offline-settings.xml
+generate-model.ps1
+refactor-access.mjs
+.maven-offline-settings.xml
