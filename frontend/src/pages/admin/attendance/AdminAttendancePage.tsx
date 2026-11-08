@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { getAttendanceChanges } from '../../../utils/attendance';
 import {
   CheckCircle2,
   Clock,
@@ -85,6 +86,8 @@ export const AdminAttendancePage: React.FC = () => {
     const orig = originalItems[index];
     return !orig || orig.status !== item.status;
   }).length;
+  const requiresCorrectionReason = selectedDate !== today
+    || getAttendanceChanges(items, originalItems).some(item => item.version !== null);
 
   const handleStatusChange = (childId: number, newStatus: AttendanceStatus) => {
     setItems((prev) =>
@@ -106,9 +109,7 @@ export const AdminAttendancePage: React.FC = () => {
   };
 
   const handleOpenSaveModal = () => {
-    setCorrectionReason(
-      selectedDate === today ? '' : 'Исправление отметки администратором'
-    );
+    setCorrectionReason('');
     setIsConfirmModalOpen(true);
   };
 
@@ -116,8 +117,8 @@ export const AdminAttendancePage: React.FC = () => {
     e.preventDefault();
     if (!selectedGroupId) return;
 
-    if (selectedDate !== today && !correctionReason.trim()) {
-      alert('Укажите обязательную причину исправления посещаемости за прошлую дату');
+    if (requiresCorrectionReason && !correctionReason.trim()) {
+      setError('Укажите причину исправления сохранённых отметок или прошлой даты.');
       return;
     }
 
@@ -127,11 +128,7 @@ export const AdminAttendancePage: React.FC = () => {
 
     try {
       const payload = {
-        items: items.map((item) => ({
-          childId: item.childId,
-          status: item.status,
-          version: item.version,
-        })),
+        items: getAttendanceChanges(items, originalItems),
         reason: correctionReason.trim(),
       };
 
@@ -313,13 +310,13 @@ export const AdminAttendancePage: React.FC = () => {
                         >
                           <XCircle size={14} /> Отсутствовал
                         </button>
-                        {item.status !== null && (
+                        {isItemDirty && (
                           <button
                             type="button"
                             className="btn btn-sm btn-ghost"
-                            onClick={() => handleStatusChange(item.childId, null)}
+                            onClick={() => handleStatusChange(item.childId, originalItems[index]?.status ?? null)}
                           >
-                            Сброс
+                            Отменить правку
                           </button>
                         )}
                       </div>
@@ -353,9 +350,9 @@ export const AdminAttendancePage: React.FC = () => {
             label="Причина / Обоснование исправления"
             value={correctionReason}
             onChange={(e) => setCorrectionReason(e.target.value)}
-            required={selectedDate !== today}
+            required={requiresCorrectionReason}
             placeholder="Например: Заявление родителя, исправление ошибки"
-            hint={selectedDate !== today ? 'Обязательно при правке прошедших дат' : 'Необязательно за сегодня'}
+            hint={requiresCorrectionReason ? 'Обязательно при исправлении сохранённых отметок или прошлой даты' : 'Необязательно для первичных отметок за сегодня'}
           />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>

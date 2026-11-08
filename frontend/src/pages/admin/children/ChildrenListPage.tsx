@@ -4,8 +4,6 @@ import {
   Filter,
   Plus,
   Search,
-  UserCheck,
-  UserX,
   Users,
 } from 'lucide-react';
 import { childrenApi } from '../../../api/children';
@@ -17,7 +15,7 @@ import { getTodayDateString } from '../../../utils/dates';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
 import { Select } from '../../../components/common/Select';
-import { Badge } from '../../../components/common/Badge';
+import { EnrollmentBadge } from '../../../components/common/EnrollmentBadge';
 import { Modal } from '../../../components/common/Modal';
 import { Alert } from '../../../components/common/Alert';
 import { Loading } from '../../../components/common/Loading';
@@ -238,7 +236,7 @@ export const ChildrenListPage: React.FC = () => {
             >
               <option value="">Все статусы</option>
               <option value="true">Только активные</option>
-              <option value="false">Выбывшие</option>
+              <option value="false">Неактивные и ожидающие поступления</option>
             </select>
           </div>
 
@@ -280,7 +278,6 @@ export const ChildrenListPage: React.FC = () => {
             </thead>
             <tbody>
               {childrenPage.content.map((child) => {
-                const isWithdrawn = !!child.withdrawalDate;
                 const primaryContact = child.contacts && child.contacts[0];
 
                 return (
@@ -297,17 +294,7 @@ export const ChildrenListPage: React.FC = () => {
                     <td>{formatDate(child.birthDate)}</td>
                     <td>{formatDate(child.admissionDate)}</td>
                     <td>
-                      {isWithdrawn ? (
-                        <Badge variant="red">
-                          <UserX size={12} />
-                          Выбыл {formatDate(child.withdrawalDate)}
-                        </Badge>
-                      ) : (
-                        <Badge variant="green">
-                          <UserCheck size={12} />
-                          Активен
-                        </Badge>
-                      )}
+                      <EnrollmentBadge child={child} />
                     </td>
                     <td style={{ fontSize: '0.8125rem' }}>
                       {primaryContact ? (

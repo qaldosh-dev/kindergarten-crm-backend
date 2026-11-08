@@ -13,22 +13,24 @@ export function getTodayDateString(): string {
       month: '2-digit',
       day: '2-digit',
     });
-    return formatter.format(now); // Produces YYYY-MM-DD
+    const parts = Object.fromEntries(formatter.formatToParts(now).map(part => [part.type, part.value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
   } catch {
     // Fallback if environment doesn't recognize timezone
-    const offsetHours = 5;
-    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-    const qyzTime = new Date(utcTime + 3600000 * offsetHours);
-    const y = qyzTime.getFullYear();
-    const m = String(qyzTime.getMonth() + 1).padStart(2, '0');
-    const d = String(qyzTime.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return new Date(now.getTime() + 5 * 3600000).toISOString().slice(0, 10);
   }
 }
 
 export function getCurrentMonthString(): string {
   const today = getTodayDateString();
   return today.substring(0, 7); // YYYY-MM
+}
+
+export function getEnrollmentState(admissionDate: string, withdrawalDate: string | null, today: string) {
+  if (admissionDate > today) return 'PLANNED';
+  if (withdrawalDate && withdrawalDate < today) return 'WITHDRAWN';
+  if (withdrawalDate) return 'WITHDRAWAL_PLANNED';
+  return 'ACTIVE';
 }
 
 export function isPastDate(dateStr: string): boolean {

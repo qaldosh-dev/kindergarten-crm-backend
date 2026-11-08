@@ -11,7 +11,8 @@ import {
 import { groupsApi } from '../../api/groups';
 import { attendanceApi } from '../../api/attendance';
 import { AttendanceItem, AttendanceStatus, Group } from '../../types/domain';
-import { getTodayDateString, isPastDate } from '../../utils/dates';
+import { getTodayDateString } from '../../utils/dates';
+import { getAttendanceChanges } from '../../utils/attendance';
 import { formatDateTime } from '../../utils/formatters';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
@@ -37,7 +38,8 @@ export const TeacherAttendancePage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
-  const isReadOnly = isPastDate(selectedDate);
+  const isReadOnly = selectedDate !== today;
+  const canEdit = !isReadOnly && workingDay && !closed && !loadingAttendance && !error;
 
   // Load teacher's assigned groups
   useEffect(() => {
@@ -104,14 +106,14 @@ export const TeacherAttendancePage: React.FC = () => {
   }).length;
 
   const handleStatusChange = (childId: number, newStatus: AttendanceStatus) => {
-    if (isReadOnly) return;
+    if (!canEdit) return;
     setItems((prev) =>
       prev.map((item) => (item.childId === childId ? { ...item, status: newStatus } : item))
     );
   };
 
   const handleBulkPresent = () => {
-    if (isReadOnly) return;
+    if (!canEdit) return;
     setItems((prev) =>
       prev.map((item) => ({
         ...item,
@@ -125,7 +127,7 @@ export const TeacherAttendancePage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedGroupId || isReadOnly) return;
+    if (!selectedGroupId || !canEdit) return;
 
     setSaving(true);
     setError(null);
@@ -134,11 +136,7 @@ export const TeacherAttendancePage: React.FC = () => {
 
     try {
       const payload = {
-        items: items.map((item) => ({
-          childId: item.childId,
-          status: item.status,
-          version: item.version,
-        })),
+        items: getAttendanceChanges(items, originalItems),
         reason: '',
       };
 
@@ -188,7 +186,7 @@ export const TeacherAttendancePage: React.FC = () => {
         </div>
 
         <div className="page-header-actions">
-          {hasUnsavedChanges && !isReadOnly && (
+          {hasUnsavedChanges && canEdit && (
             <>
               <Button variant="secondary" size="sm" onClick={handleResetChanges} disabled={saving}>
                 <RotateCcw size={15} />
@@ -248,7 +246,7 @@ export const TeacherAttendancePage: React.FC = () => {
           />
         </div>
 
-        {!isReadOnly && workingDay && !closed && (
+        {canEdit && (
           <div style={{ marginLeft: 'auto', alignSelf: 'flex-end', paddingTop: '1.25rem' }}>
             <Button
               variant="secondary"
@@ -266,7 +264,7 @@ export const TeacherAttendancePage: React.FC = () => {
       {isReadOnly && (
         <Alert type="info" className="mb-4">
           <Calendar size={18} style={{ marginRight: '0.5rem' }} />
-          Просмотр прошедшей даты — только чтение. Изменение отметок за прошлые дни выполняет администратор.
+          Доступен просмотр. Воспитатель может менять отметки только за сегодня.
         </Alert>
       )}
 
@@ -343,7 +341,7 @@ export const TeacherAttendancePage: React.FC = () => {
                       )}
                     </td>
                     <td>
-                      {!isReadOnly ? (
+                      {canEdit ? (
                         <div style={{ display: 'flex', gap: '0.375rem' }}>
                           <button
                             type="button"
@@ -363,15 +361,15 @@ export const TeacherAttendancePage: React.FC = () => {
                             <XCircle size={14} />
                             Не пришёл
                           </button>
-                          {item.status !== null && (
+                          {isItemDirty && (
                             <button
                               type="button"
                               className="btn btn-sm btn-ghost"
-                              onClick={() => handleStatusChange(item.childId, null)}
+                              onClick={() => handleStatusChange(item.childId, originalItems[index]?.status ?? null)}
                               disabled={saving}
-                              title="Сбросить в 'Не отмечено'"
+                              title="Отменить несохранённую правку"
                             >
-                              Сброс
+                              Отменить правку
                             </button>
                           )}
                         </div>

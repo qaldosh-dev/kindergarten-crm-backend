@@ -123,11 +123,14 @@ export function formatRole(role: Role | string): string {
 export function formatAccountEntryType(type: string): string {
   switch (type) {
     case 'INITIAL_BALANCE':
+    case 'OPENING_BALANCE':
       return 'Начальный остаток';
     case 'CHARGE':
       return 'Начисление за месяц';
     case 'PAYMENT':
       return 'Оплата';
+    case 'PAYMENT_CANCEL':
+      return 'Отмена платежа';
     case 'RECONCILIATION':
       return 'Сверка (корректировка начисления)';
     case 'ADJUSTMENT':

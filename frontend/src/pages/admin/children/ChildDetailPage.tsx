@@ -13,7 +13,6 @@ import {
   Save,
   Tag,
   User,
-  UserCheck,
   UserX,
   Users,
 } from 'lucide-react';
@@ -43,6 +42,7 @@ import { Input } from '../../../components/common/Input';
 import { Textarea } from '../../../components/common/Textarea';
 import { Select } from '../../../components/common/Select';
 import { Badge } from '../../../components/common/Badge';
+import { EnrollmentBadge } from '../../../components/common/EnrollmentBadge';
 import { Modal } from '../../../components/common/Modal';
 import { Alert } from '../../../components/common/Alert';
 import { Loading } from '../../../components/common/Loading';
@@ -268,7 +268,7 @@ export const ChildDetailPage: React.FC = () => {
       });
       setChild(updated);
       setIsWithdrawModalOpen(false);
-      setSuccess(`Оформлен выбытие ребёнка от ${formatDate(withdrawalDateInput)}`);
+      setSuccess(`Дата выбытия сохранена: ${formatDate(withdrawalDateInput)}`);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.detail || err.title || 'Ошибка оформления выбытия');
@@ -279,7 +279,7 @@ export const ChildDetailPage: React.FC = () => {
   };
 
   const handleReopenAdmission = async () => {
-    if (!child || !window.confirm('Возобновить зачисление ребёнка (снять дату выбытия)?')) return;
+    if (!child || !window.confirm('Отменить дату выбытия ребёнка?')) return;
     setWithdrawalLoading(true);
     setError(null);
     try {
@@ -288,10 +288,10 @@ export const ChildDetailPage: React.FC = () => {
         version: child.version,
       });
       setChild(updated);
-      setSuccess('Зачисление возобновлено.');
+      setSuccess('Дата выбытия отменена.');
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.detail || err.title || 'Ошибка возобновления зачисления');
+        setError(err.detail || err.title || 'Ошибка отмены выбытия');
       }
     } finally {
       setWithdrawalLoading(false);
@@ -559,7 +559,7 @@ export const ChildDetailPage: React.FC = () => {
     );
   }
 
-  const isWithdrawn = !!child.withdrawalDate;
+  const hasWithdrawalDate = !!child.withdrawalDate;
 
   return (
     <div>
@@ -578,15 +578,7 @@ export const ChildDetailPage: React.FC = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
               <h1 style={{ fontSize: '1.5rem' }}>{child.fullName}</h1>
-              {isWithdrawn ? (
-                <Badge variant="red">
-                  <UserX size={12} /> Выбыл {formatDate(child.withdrawalDate)}
-                </Badge>
-              ) : (
-                <Badge variant="green">
-                  <UserCheck size={12} /> Активен
-                </Badge>
-              )}
+              <EnrollmentBadge child={child} />
             </div>
             <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               <span>
@@ -614,24 +606,26 @@ export const ChildDetailPage: React.FC = () => {
               <Users size={14} /> Перевести в группу
             </Button>
 
-            {isWithdrawn ? (
+            {hasWithdrawalDate && (
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={handleReopenAdmission}
                 loading={withdrawalLoading}
               >
-                <RotateCcw size={14} /> Возобновить зачисление
-              </Button>
-            ) : (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => setIsWithdrawModalOpen(true)}
-              >
-                <UserX size={14} /> Оформить выбытие
+                <RotateCcw size={14} /> Отменить выбытие
               </Button>
             )}
+            <Button
+              variant={hasWithdrawalDate ? 'secondary' : 'danger'}
+              size="sm"
+              onClick={() => {
+                setWithdrawalDateInput(child.withdrawalDate ?? getTodayDateString());
+                setIsWithdrawModalOpen(true);
+              }}
+            >
+              <UserX size={14} /> {hasWithdrawalDate ? 'Изменить дату выбытия' : 'Оформить выбытие'}
+            </Button>
           </div>
         </div>
       </div>
@@ -888,7 +882,7 @@ export const ChildDetailPage: React.FC = () => {
                       {formatMoney(account.debt)}
                     </div>
                   </div>
-                  <div className="metric-sub">Сумма неоплаченных счетов</div>
+                  <div className="metric-sub">Текущий долг по лицевому счёту</div>
                 </div>
 
                 <div className="metric-card">

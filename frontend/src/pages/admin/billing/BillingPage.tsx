@@ -456,7 +456,7 @@ export const BillingPage: React.FC = () => {
                 )}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Итого к оплате: </span>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Начисление по счёту: </span>
                 <span className="amount" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--navy-900)' }}>
                   {formatMoney(detailInvoice.amount)}
                 </span>
@@ -499,7 +499,7 @@ export const BillingPage: React.FC = () => {
                 </h4>
                 {!detailInvoice.calculation.excludedDays || detailInvoice.calculation.excludedDays.length === 0 ? (
                   <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                    Нет исключённых дней (ребёнок посещал весь месяц).
+                    Все рабочие дни периода включены в начисление.
                   </p>
                 ) : (
                   <div className="table-container" style={{ marginBottom: '1rem', maxHeight: '180px', overflowY: 'auto' }}>
