@@ -13,6 +13,7 @@ import kz.kindergarten.billing.BillingSnapshot;
 import kz.kindergarten.finance.Payment;
 
 @Entity
+@org.hibernate.annotations.Immutable
 @Table(name = "account_entry")
 public class LedgerEntry extends PersistentEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

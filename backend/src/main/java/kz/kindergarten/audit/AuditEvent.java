@@ -9,6 +9,7 @@ import kz.kindergarten.common.*;
 import kz.kindergarten.auth.UserEntity;
 
 @Entity
+@org.hibernate.annotations.Immutable
 @Table(name = "audit_event")
 public class AuditEvent extends PersistentEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = true)

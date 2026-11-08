@@ -9,6 +9,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
+@org.hibernate.annotations.Immutable
 @Table(name = "idempotency_request")
 public class IdempotencyRequest {
     @Id
