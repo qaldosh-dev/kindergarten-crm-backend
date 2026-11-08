@@ -1,0 +1,18 @@
+{
+  "tasks": [
+    {
+      "id": "codex-connection",
+      "provider": "codex",
+      "worktree": "../kindergarten-backend",
+      "branch": "agent/backend",
+      "prompt": "tasks/codex-smoke.txt"
+    },
+    {
+      "id": "antigravity-connection",
+      "provider": "agy",
+      "worktree": "../kindergarten-frontend",
+      "branch": "agent/frontend",
+      "prompt": "tasks/agy-smoke.txt"
+    }
+  ]
+}
