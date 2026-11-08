@@ -10,6 +10,7 @@
     {
       "id": "antigravity-connection",
       "provider": "agy",
+      "model": "gemini-4-argon-medium",
       "worktree": "../kindergarten-frontend",
       "branch": "agent/frontend",
       "prompt": "tasks/agy-smoke.txt"

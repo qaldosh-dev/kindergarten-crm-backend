@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)][ValidateSet('codex', 'agy')][string]$Provider,
     [Parameter(Mandatory = $true)][string]$Workspace,
-    [Parameter(Mandatory = $true)][string]$PromptFile
+    [Parameter(Mandatory = $true)][string]$PromptFile,
+    [string]$Model
 )
 
 $ErrorActionPreference = 'Stop'
@@ -9,12 +10,15 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 $OutputEncoding = [Console]::OutputEncoding
 Set-Location -LiteralPath $Workspace
-$taskPrompt = Get-Content -LiteralPath $PromptFile -Raw -Encoding UTF8
+$taskPrompt = [System.IO.File]::ReadAllText($PromptFile, [System.Text.Encoding]::UTF8)
+$modelArguments = @()
+if ($Model) { $modelArguments = @('--model', $Model) }
 
 if ($Provider -eq 'codex') {
-    $taskPrompt | & codex.cmd exec --sandbox workspace-write --color never --json -
+    $taskPrompt | & codex.cmd exec --sandbox workspace-write --color never --json @modelArguments -
 } else {
-    & agy -p $taskPrompt --output-format json --mode auto --sandbox --print-timeout 15m
+    $message = @{ event = 'user'; message = @{ content = $taskPrompt } } | ConvertTo-Json -Compress -Depth 5
+    $message | & agy --input-format stream-json --output-format stream-json --mode accept-edits --sandbox --print-timeout 15m @modelArguments
 }
 
 exit $LASTEXITCODE

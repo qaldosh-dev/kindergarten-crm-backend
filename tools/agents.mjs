@@ -43,10 +43,13 @@ async function execute(task, runDirectory, timeoutSeconds) {
   stdout.on('error', error => { ioError = error.message; });
   stderr.on('error', error => { ioError = error.message; });
 
-  const child = spawn('powershell.exe', [
+  const workerArguments = [
     '-NoProfile', '-NonInteractive', '-File', workerScript,
     '-Provider', task.provider, '-Workspace', task.workspace, '-PromptFile', task.promptPath,
-  ], { cwd: task.workspace, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  ];
+  if (task.model) workerArguments.push('-Model', task.model);
+  const child = spawn('powershell.exe', workerArguments,
+    { cwd: task.workspace, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   children.add(child);
   child.stdout.pipe(stdout);
   child.stderr.pipe(stderr);
@@ -78,7 +81,10 @@ async function execute(task, runDirectory, timeoutSeconds) {
 
   if (status === 'review_required' && task.provider === 'agy') {
     try {
-      const response = JSON.parse((await readFile(stdoutPath, 'utf8')).replace(/^\uFEFF/, ''));
+      const events = (await readFile(stdoutPath, 'utf8')).replace(/^\uFEFF/, '').trim()
+        .split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
+      const response = events.findLast(event => event.event === 'result')?.result;
+      if (!response) throw new Error('Missing final result event.');
       if (response.status !== 'SUCCESS') {
         status = 'failed';
         error = JSON.stringify(response.error ?? response.status);
@@ -89,7 +95,7 @@ async function execute(task, runDirectory, timeoutSeconds) {
     }
   }
   const result = {
-    id: task.id, provider: task.provider, workspace: task.workspace,
+    id: task.id, provider: task.provider, model: task.model, workspace: task.workspace,
     branch: task.branch, status, ...outcome, error, stdoutPath, stderrPath,
   };
   await writeFile(path.join(runDirectory, `${task.id}.result.json`), JSON.stringify(result, null, 2));
@@ -114,6 +120,7 @@ async function main() {
   for (const task of manifest.tasks) {
     if (!/^[a-z0-9-]+$/.test(task.id) || ids.has(task.id)) throw new Error('Invalid/duplicate task id.');
     if (!['codex', 'agy'].includes(task.provider)) throw new Error('Unsupported provider.');
+    if (task.model && !/^[a-zA-Z0-9._-]+$/.test(task.model)) throw new Error('Invalid model identifier.');
     const workspace = realpathSync(path.resolve(repository, task.worktree));
     const workspaceKey = workspace.toLowerCase();
     if (!registered.includes(workspaceKey) || workspaces.has(workspaceKey)) {
