@@ -70,8 +70,9 @@ export async function request<T>(endpoint: string, options: RequestOptions = {})
     headers['Content-Type'] = 'application/json';
   }
 
-  if (inMemoryToken) {
-    headers['Authorization'] = `Bearer ${inMemoryToken}`;
+  const requestToken = inMemoryToken;
+  if (requestToken) {
+    headers['Authorization'] = `Bearer ${requestToken}`;
   }
 
   if (idempotencyKey) {
@@ -83,10 +84,12 @@ export async function request<T>(endpoint: string, options: RequestOptions = {})
     headers,
   });
 
-  if (response.status === 401) {
-    setAuthToken(null);
-    if (onUnauthorizedCallback) {
-      onUnauthorizedCallback();
+  if (response.status === 401 && endpoint !== '/auth/login') {
+    if (inMemoryToken === requestToken) {
+      setAuthToken(null);
+      if (onUnauthorizedCallback) {
+        onUnauthorizedCallback();
+      }
     }
     throw new ApiError(401, {
       title: 'Сессия истекла',
@@ -132,14 +135,17 @@ export async function downloadFile(endpoint: string, params?: Record<string, str
   }
 
   const headers: Record<string, string> = {};
-  if (inMemoryToken) {
-    headers['Authorization'] = `Bearer ${inMemoryToken}`;
+  const requestToken = inMemoryToken;
+  if (requestToken) {
+    headers['Authorization'] = `Bearer ${requestToken}`;
   }
 
   const response = await fetch(url, { headers });
   if (response.status === 401) {
-    setAuthToken(null);
-    if (onUnauthorizedCallback) onUnauthorizedCallback();
+    if (inMemoryToken === requestToken) {
+      setAuthToken(null);
+      if (onUnauthorizedCallback) onUnauthorizedCallback();
+    }
     throw new ApiError(401, { title: 'Сессия истекла' });
   }
   if (!response.ok) {
