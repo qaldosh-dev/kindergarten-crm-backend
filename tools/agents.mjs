@@ -119,7 +119,9 @@ async function main() {
   const tasks = [];
 
   for (const task of manifest.tasks) {
-    if (!/^[a-z0-9-]+$/.test(task.id) || ids.has(task.id)) throw new Error('Invalid/duplicate task id.');
+    if (typeof task.id !== 'string' || !/^[a-z0-9-]+$/.test(task.id) || ids.has(task.id)) {
+      throw new Error('Invalid/duplicate task id.');
+    }
     if (!['codex', 'agy'].includes(task.provider)) throw new Error('Unsupported provider.');
     if (task.model && !/^[a-zA-Z0-9._-]+$/.test(task.model)) throw new Error('Invalid model identifier.');
     if (task.sessionId && !/^[a-f0-9-]{36}$/.test(task.sessionId)) throw new Error('Invalid session identifier.');

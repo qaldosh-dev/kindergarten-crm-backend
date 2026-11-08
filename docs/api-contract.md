@@ -72,6 +72,8 @@ Calculation {workingDays:number,payableDays:number,amount:number,excludedDays:[{
 - POST /invoices/{id}/reconciliation-preview {} -> {invoiceId,previousAmount,newAmount,difference,calculation}.
 - POST /invoices/{id}/reconcile {reason} -> {invoiceId,previousAmount,newAmount,difference,entryId:null|number}. Recomputes under lock, never trusts client amount. Difference = new target minus original charge and previous reconciliations. Repeat yields zero.
 
+Reconciliation compares only automatic CHARGE and RECONCILIATION entries. Explicit manual ADJUSTMENT entries stay in account/allocated invoice totals and are preserved across automatic recalculation. Birthday-month pricing treats February as birthday month for February29 births in non-leap years too.
+
 ## Payments and account
 
 Account {childId,balance,debt,credit,entries:[{id,type,amount,createdAt,reason,invoiceId,paymentId}],payments:[Payment]}. Positive balance debt, negative credit. Entry amount signed relative to debt (payments negative, refunds positive). Lists in account can cover complete history for MVP but must be bounded/paginatable if it grows; entries endpoint may supplement it.

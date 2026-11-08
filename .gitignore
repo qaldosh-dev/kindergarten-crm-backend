@@ -8,4 +8,5 @@ dist/
 .idea/
 *.log
 **/AGENT_CONNECTION.md
+.backups/
 

@@ -1,28 +1,62 @@
 # Kindergarten Management & Billing
 
-Java 21 / Spring Boot backend and React frontend for attendance and parent billing in a private kindergarten.
+Веб-приложение для частного детского сада. Владелец ведёт детей, группы, посещаемость и родительские платежи. Воспитатели отмечают посещаемость назначенных групп.
 
-Business requirements are in docs/specification.md. Application implementation has not started.
+Java 21, Spring Boot 3, Spring Data JPA, PostgreSQL, Flyway, Spring Security JWT, MapStruct, OpenAPI, React, TypeScript, Docker и Testcontainers.
 
-## CLI agent coordination
+## Правила расчёта
 
-The coordinator dispatches tasks to Codex CLI and Antigravity CLI in separate Git worktrees. Responses, diagnostics and per-task statuses are saved under .agent-runs/. The coordinator inspects diffs and runs checks before integrating changes.
+Вся плата относится к питанию. До двух лет — 60 000 ₸, с двух до четырёх — 50 000 ₸, с четырёх — 40 000 ₸ в месяц. Новый возрастной тариф применяется ко всему месяцу дня рождения. Платёж вносится до 10-го числа.
 
-Requirements: Windows PowerShell, Node.js, Git, authenticated codex.cmd and agy CLI on PATH. Existing CLI settings and cached authentication are used. Permission bypass flags are not used. Headless tasks may require an execution approval from the parent Codex session. Authentication prompts require the account owner's participation.
+Начисление равно сумме месячных цен для оплачиваемых рабочих дней, делённой на базовое количество рабочих дней месяца. Итог округляется вверх до целого тенге один раз. Подтверждённая болезнь и внеплановое закрытие исключают день из оплаты. Выходные и праздники исключены из базового календаря. Период зачисления учитывается включительно.
 
-After the initial commit, create workers from the repository directory:
+Выставленный счёт сохраняет снимок расчёта. Поздние изменения оформляются отдельной корректировкой. Долг и переплата вычисляются по финансовым операциям. Старый долг не становится новым начислением следующего месяца.
+
+Полные требования находятся в [ТЗ](docs/specification.md), DTO и эндпоинты — в [контракте API](docs/api-contract.md).
+
+## Локальное demo
+
+Потребуются работающий Docker Engine с Compose и свободные порты 3000, 8080 и 5433.
 
 ```powershell
-git worktree add -b agent/backend ../kindergarten-backend main
-git worktree add -b agent/frontend ../kindergarten-frontend main
-node tools/agents.mjs tasks/smoke.json
+Copy-Item .env.example .env
+docker compose up --build -d
 ```
 
-Both tasks run concurrently. The command waits for completion, writes logs and a summary, and returns nonzero if a task fails or times out. The default timeout is 15 minutes per task, configurable with AGENT_TIMEOUT_SECONDS. Stop the launcher with Ctrl+C to stop its workers. On Windows, only process trees started by this launcher are terminated.
+Интерфейс — http://localhost:3000, API — http://localhost:8080/api/v1, Swagger — http://localhost:8080/swagger-ui/index.html, readiness — http://localhost:8080/actuator/health/readiness.
 
-Tasks specify a unique id, provider, worktree, expected branch, a UTF-8 prompt file and an optional model. Antigravity is pinned to gemini-4-argon-medium, verified against agy models. Codex uses the existing user's model configuration. One active task per worktree is enforced with lock files. The worktree must be a registered worktree of this repository. Branches and task prompts are checked before any worker starts. If a process crashes and leaves a lock, inspect its recorded process and logs before removing the stale lock.
+Профиль `demo` создаёт вымышленные данные и тестовые учётные записи:
 
-Codex runs with workspace-write sandbox. Antigravity runs in accept-edits mode with its terminal sandbox. Auto mode was unavailable for this account during verification. Tool permissions remain subject to the existing CLI policy. Antigravity can report SUCCESS despite denied tool actions, so inspect stderr and verify files. Successful turns receive review_required status, not an assertion that the feature works.
+| Роль | Логин | Пароль |
+|---|---|---|
+| Администратор | admin@demo.local | DemoAdmin2026! |
+| Воспитатель | teacher@demo.local | DemoTeacher2026! |
 
-The smoke tasks only write diagnostic connection reports. They do not implement application features. Future rounds replace the task manifest and prompts with concrete implementation tasks. Backend and frontend agree on API contracts before development. Existing workers receive merged foundation changes between rounds, when their work is committed and the worktrees are clean.
+Для размещения с реальными данными используется отдельная конфигурация с production-секретами, HTTPS и согласованными условиями хранения. Первоначальные учётные данные владельца задаются через `ADMIN_LOGIN` и `ADMIN_PASSWORD`. Публичное demo использует вымышленные данные.
+
+## Проверки и разработка
+
+```powershell
+cd backend
+mvn.cmd verify
+```
+
+Интеграционные тесты используют Testcontainers с PostgreSQL и требуют Docker Engine. Локальный backend подключается к PostgreSQL на localhost:5433. Переменные подключения — `DB_URL`, `DB_USER`, `DB_PASSWORD`. `JWT_SECRET` содержит минимум 32 UTF-8 байта.
+
+```powershell
+cd frontend
+npm.cmd ci
+npm.cmd run build
+npm.cmd run dev
+```
+
+Vite проксирует `/api` и `/actuator` на localhost:8080. JWT хранится в памяти, после обновления страницы требуется повторный вход. Права на группы и финансы проверяются backend.
+
+## Резервная копия
+
+При работающем Compose команда `.\tools\backup.ps1` создаёт PostgreSQL custom-format dump в `.backups/`. Копии переносятся в отдельное хранилище. Восстановление проверяется на отдельной тестовой БД через `pg_restore` совместимой версии PostgreSQL.
+
+## CLI-агенты
+
+Codex разрабатывает backend, Gemini через Antigravity — frontend. У каждого отдельный Git-worktree, координатор проверяет изменения и интегрирует результат. Запуск и формат задач описаны в [инструкции](docs/agent-workflow.md).
 

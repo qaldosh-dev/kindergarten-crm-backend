@@ -17,9 +17,9 @@ if ($Model) { $modelArguments = @('--model', $Model) }
 
 if ($Provider -eq 'codex') {
     if ($SessionId) {
-        $taskPrompt | & codex.cmd exec --sandbox workspace-write --approve-for-me --color never --json @modelArguments resume $SessionId -
+        $taskPrompt | & codex.cmd exec --sandbox workspace-write --color never --json @modelArguments resume $SessionId -
     } else {
-        $taskPrompt | & codex.cmd exec --sandbox workspace-write --approve-for-me --color never --json @modelArguments -
+        $taskPrompt | & codex.cmd exec --sandbox workspace-write --color never --json @modelArguments -
     }
 } else {
     $message = @{ event = 'user'; message = @{ content = $taskPrompt } } | ConvertTo-Json -Compress -Depth 5
