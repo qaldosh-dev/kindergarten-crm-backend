@@ -1,6 +1,7 @@
 package kz.kindergarten.finance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityManager;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -43,17 +44,33 @@ public class IdempotencyService {
             if (!previous.get().getFingerprint().equals(fingerprint) || !previous.get().getActor().getId().equals(current.id())) {
                 throw new ApiException(409, "IDEMPOTENCY_CONFLICT", "Ключ уже использован для другого запроса");
             }
-            return json.convertValue(previous.get().getResponse(), responseType);
+            return restoreResponse(previous.get().getResponse(), responseType);
         }
         T response = action.get();
         var request = new IdempotencyRequest();
         request.setRequestKey(key);
         request.setActor(users.getReferenceById(current.id()));
         request.setFingerprint(fingerprint);
-        request.setResponse(json.valueToTree(response));
+        request.setResponse(serializeResponse(response));
         request.setCreatedAt(time.now());
         requests.saveAndFlush(request);
         return response;
+    }
+
+    private String serializeResponse(Object response) {
+        try {
+            return json.writeValueAsString(response);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Cannot store idempotent response", exception);
+        }
+    }
+
+    private <T> T restoreResponse(String response, Class<T> responseType) {
+        try {
+            return json.readValue(response, responseType);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Cannot restore idempotent response", exception);
+        }
     }
 
     private String fingerprint(String operation, Object body) {

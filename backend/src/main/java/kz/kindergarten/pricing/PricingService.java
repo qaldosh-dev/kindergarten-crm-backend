@@ -80,7 +80,8 @@ public class PricingService {
             if (existing.isEmpty()) {
                 // Default calendar dates expose version 0. The first persisted revision
                 // must differ so another edit based on the default cannot overwrite it.
-                entityManager.lock(day, jakarta.persistence.LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+                calendar.advanceInitialRevision(input.date());
+                entityManager.refresh(day);
             }
             audit.record("CALENDAR", input.date().toEpochDay(), "UPDATE", before, mapper.day(day), day.getReason());
         }
