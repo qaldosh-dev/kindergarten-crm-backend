@@ -3,6 +3,7 @@
     {
       "id": "codex-connection",
       "provider": "codex",
+      "model": "gpt-6.1-sol",
       "worktree": "../kindergarten-backend",
       "branch": "agent/backend",
       "prompt": "tasks/codex-smoke.txt"
@@ -10,7 +11,7 @@
     {
       "id": "antigravity-connection",
       "provider": "agy",
-      "model": "gemini-4-argon-medium",
+      "model": "gemini-3.8-flash-high",
       "worktree": "../kindergarten-frontend",
       "branch": "agent/frontend",
       "prompt": "tasks/agy-smoke.txt"

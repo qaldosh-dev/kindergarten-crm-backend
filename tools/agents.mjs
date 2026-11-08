@@ -48,6 +48,7 @@ async function execute(task, runDirectory, timeoutSeconds) {
     '-Provider', task.provider, '-Workspace', task.workspace, '-PromptFile', task.promptPath,
   ];
   if (task.model) workerArguments.push('-Model', task.model);
+  if (task.sessionId) workerArguments.push('-SessionId', task.sessionId);
   const child = spawn('powershell.exe', workerArguments,
     { cwd: task.workspace, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   children.add(child);
@@ -96,7 +97,7 @@ async function execute(task, runDirectory, timeoutSeconds) {
   }
   const result = {
     id: task.id, provider: task.provider, model: task.model, workspace: task.workspace,
-    branch: task.branch, status, ...outcome, error, stdoutPath, stderrPath,
+    branch: task.branch, sessionId: task.sessionId, status, ...outcome, error, stdoutPath, stderrPath,
   };
   await writeFile(path.join(runDirectory, `${task.id}.result.json`), JSON.stringify(result, null, 2));
   console.log(`${task.id}: ${status}`);
@@ -106,7 +107,7 @@ async function execute(task, runDirectory, timeoutSeconds) {
 async function main() {
   if (process.platform !== 'win32') throw new Error('This launcher targets Windows.');
   if (!process.argv[2]) throw new Error('Usage: node tools/agents.mjs tasks/round.json');
-  const timeoutSeconds = Number(process.env.AGENT_TIMEOUT_SECONDS ?? 900);
+  const timeoutSeconds = Number(process.env.AGENT_TIMEOUT_SECONDS ?? 3600);
   if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) throw new Error('Invalid timeout.');
   const manifest = JSON.parse(await readFile(path.resolve(repository, process.argv[2]), 'utf8'));
   if (!Array.isArray(manifest.tasks) || manifest.tasks.length === 0) throw new Error('No tasks.');
@@ -121,6 +122,7 @@ async function main() {
     if (!/^[a-z0-9-]+$/.test(task.id) || ids.has(task.id)) throw new Error('Invalid/duplicate task id.');
     if (!['codex', 'agy'].includes(task.provider)) throw new Error('Unsupported provider.');
     if (task.model && !/^[a-zA-Z0-9._-]+$/.test(task.model)) throw new Error('Invalid model identifier.');
+    if (task.sessionId && !/^[a-f0-9-]{36}$/.test(task.sessionId)) throw new Error('Invalid session identifier.');
     const workspace = realpathSync(path.resolve(repository, task.worktree));
     const workspaceKey = workspace.toLowerCase();
     if (!registered.includes(workspaceKey) || workspaces.has(workspaceKey)) {
